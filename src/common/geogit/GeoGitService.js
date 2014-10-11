@@ -394,21 +394,37 @@
         var metadata = layer.get('metadata');
         if (!goog.isDefAndNotNull(metadata.isGeoGit)) {
           if (goog.isDefAndNotNull(fullConfig.Identifier) && goog.isDefAndNotNull(fullConfig.Identifier[0])) {
-            var splitGeogit = fullConfig.Identifier[0].split(':');
-            if (goog.isArray(splitGeogit) && (splitGeogit.length === 3 || splitGeogit.length === 4)) {
-              var workspace = splitGeogit[0];
-              var repoName = splitGeogit[1];
-              var nativeName = splitGeogit[2];
-              metadata.branchName = 'master';
-              metadata.nativeName = nativeName;
-              if (splitGeogit.length === 4) {
-                metadata.branchName = splitGeogit[3];
+            var splitGeogig = fullConfig.Identifier[0].split(':');
+            if (goog.isArray(splitGeogig) &&
+                (splitGeogig.length === 2 || splitGeogig.length === 3 || splitGeogig.length === 4)) {
+
+              var geogigURL = '';
+              var nativeName = '';
+              if (splitGeogig.length === 2)
+              {
+                var repoID = splitGeogig[0];
+                nativeName = splitGeogig[1];
+                metadata.branchName = 'master';
+                metadata.nativeName = nativeName;
+                geogigURL = metadata.url + '/geogig/' + repoID;
               }
-              var geogitURL = metadata.url + '/geogit/' + workspace + ':' + repoName;
-              http.get(geogitURL + '/repo/manifest').then(function() {
+              else
+              {
+                var workspace = splitGeogig[0];
+                var repoName = splitGeogig[1];
+                nativeName = splitGeogig[2];
+                metadata.branchName = 'master';
+                metadata.nativeName = nativeName;
+                if (splitGeogig.length === 4) {
+                  metadata.branchName = splitGeogig[3];
+                }
+                geogigURL = metadata.url + '/geogit/' + workspace + ':' + repoName;
+              }
+
+              http.get(geogigURL + '/repo/manifest').then(function() {
                 var addRepo = function(admin) {
                   var promise = service_.addRepo(
-                      new GeoGitRepo(geogitURL,
+                      new GeoGitRepo(geogigURL,
                           sha1(metadata.url + ':' + repoName), metadata.branchName, repoName), admin);
                   promise.then(function(repo) {
                     if (goog.isDef(repo.id)) {
@@ -428,7 +444,7 @@
                 };
                 // see if we have admin access
                 // HACK see if the merge endpoint is available.
-                http.get(geogitURL + '/merge').then(function() {
+                http.get(geogigURL + '/merge').then(function() {
                   metadata.isGeoGitAdmin = true;
                   addRepo(true);
                 }, function(reject) {
